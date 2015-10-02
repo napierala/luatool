@@ -100,6 +100,8 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--append',  action='store_true',    help='Append source file to destination file.')
     parser.add_argument('-l', '--list',    action='store_true',    help='List files on device')
     parser.add_argument('-w', '--wipe',    action='store_true',    help='Delete all lua/lc files on device.')
+    parser.add_argument('-fmt', '--format',    action='store_true',    help='Format the file system.')
+
     args = parser.parse_args()
 
     if args.list:
@@ -131,6 +133,27 @@ if __name__ == '__main__':
             if args.verbose:
                 sys.stderr.write("Delete file {} from device.\r\n".format(fn))
             writeln("file.remove(\"" + fn + "\")\r")
+        sys.exit(0)
+
+    if args.format:
+        s = openserial(args)
+        writeln("file.format()\r", 0)
+        response_list = []
+        current_response = ""
+        while True:
+            char = s.read(1)
+            if char == '' or char == chr(62):
+                break
+            if char not in ['\r', '\n']:
+                current_response += char
+            else:
+                if current_response:
+                    response_list.append(current_response.strip())
+                current_response = ''
+        if response_list[1] != 'format done.': # The first response in the list is the command sent to device, so check the second response.
+            raise Exception('The format function returned a wrong value of:' + response)
+        if args.verbose:
+            sys.stdout.write("The file system has been formated.\r\n")
         sys.exit(0)
 
     if args.dest is None:
